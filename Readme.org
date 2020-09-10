@@ -1,0 +1,9 @@
+#+TITLE: Garrafo: O servidor *minimalista* de /HTTP/
+
+* O que é?
+Como projeto para a disciplina de redes será criado um servidor utilizando a 
+biblioteca /berkeley sockets/ da linguagem ainda a ser definida.
+
+
+
+
