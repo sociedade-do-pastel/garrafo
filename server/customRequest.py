@@ -6,6 +6,10 @@ class RequestFactory:
     def makeRequest(message):
         if message.method == "GET":
             return ResponseGet(message)
+        elif message.method == "POST":
+            return ResponsePost(message)
+        elif message.method == "PUT":
+            return ResponsePut(message)
 
 class Response(ABC):
     def __init__(self, message):
@@ -17,12 +21,22 @@ class Response(ABC):
 
 class ResponseGet(Response):
     def __init__(self, message):
+        super().__init__(message)
+
+    
+    def makeResponse(self):
         pass
 
-class ReponsePost(Response):
+class ResponsePost(Response):
     def __init__(self, message):
+        super().__init__(message)
+    
+    def makeResponse(self):
         pass
 
 class ResponsePut(Response):
     def __init__(self, message):
+        super().__init__(message)
+
+    def makeResponse(self):
         pass
