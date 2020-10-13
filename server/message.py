@@ -1,4 +1,5 @@
 class Message:
+    """Message parses the data received by socket."""
     def __init__(self, msg):
         self.method = ""
         self.request = ""
@@ -6,11 +7,12 @@ class Message:
         self.host = ""
         self.user_agent = ""
         self.accept = ""
+
         self.__parse__(msg)
 
     def __parse__(self, msg):
         # Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
-        parsedMsg      = msg.split("\n")
+        parsedMsg = msg.split("\n")
         for x in parsedMsg:
             y = x.split(" ")
             if y[0] in ["GET", "POST", "PUT"]:
