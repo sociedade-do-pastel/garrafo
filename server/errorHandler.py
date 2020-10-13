@@ -11,10 +11,12 @@ error_markdown = '''<!DOCTYPE html>
 class GeneralError(Exception):
     def __init__(self, error_code, error, rundown, image):
         self.error_code = error_code
+        self.error_mime = "text/html ; charset=utf-8"
         self.error_message = error
         self.rundown = rundown
         self.image = image
-        self.error_response = error_markdown.format(self.error_message, self.error_message, self.rundown, self.image)
+        self.error_body = bytes(error_markdown.format(self.error_message, self.error_message, self.rundown, self.image).encode("UTF-8"))
+        self.error_length = len(self.error_body)
 
 class ServerError(GeneralError):
     def __init__(self):
@@ -22,7 +24,6 @@ class ServerError(GeneralError):
                          "500 Internal Server Error",
                          "Server encountered an error and seems to be inoperable.",
                          "https://cdn0.vox-cdn.com/thumbor/qtENVA_fBEiDYPj8wdSZRLcP7bQ=/110x0:565x303/1200x800/filters:focal(110x0:565x303)/cdn0.vox-cdn.com/uploads/chorus_image/image/50310263/658.0.0.png")
-
 
 class HTTPnotSupported(GeneralError):
     def __init__(self):
@@ -54,10 +55,10 @@ class BadRequest(GeneralError):
 
 
 class MovedPerm(GeneralError):
-    def __init__(self):
+    def __init__(self, new_path):
         super().__init__(301,
                          "301 Moved Permanentely",
-                         "The requested resource has been assigned a new permanent URI and any future references to this resource SHOULD use one of the returned URIs.",
+                         f"The requested resource has been assigned a new permanent URI and any future references to this resource SHOULD use one of the returned URIs. The new path should be {new_path}",
                          "https://i.redd.it/5o5o2rdgt2oz.jpg")
                          
     
