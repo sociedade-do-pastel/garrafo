@@ -7,8 +7,7 @@ class Message:
         self.host = ""
         self.user_agent = ""
         self.accept = ""
-        self.content_length = ""
-
+        self.content_length = None
         self.__parse__(msg)
 
     def __parse__(self, msg):
@@ -16,7 +15,6 @@ class Message:
         parsedMsg = msg.split("\n")
         for x in parsedMsg:
             y = x.split(" ")
-            print (y)
             if y[0] in ["GET", "POST", "PUT"]:
                 self.method, self.request, self.protocol = y
                 self.protocol = self.protocol[:-1]

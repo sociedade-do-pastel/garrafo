@@ -1,3 +1,6 @@
+# definition for the html code which
+# is gonna be used as a template for all
+# our errors
 error_markdown = '''<!DOCTYPE html>
 <html>
 <head><title>{:}</title></head>
@@ -8,6 +11,7 @@ error_markdown = '''<!DOCTYPE html>
 <img src=\"{:}\">
 </body>
 </html>'''
+
 class GeneralError(Exception):
     def __init__(self, error_code, error, rundown, image):
         self.error_code = error_code

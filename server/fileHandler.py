@@ -21,6 +21,7 @@ root_path TEXT
 )\n'''
 
 # relationship between file and server
+# unused right now, since we are working with a single server
 MAIN_RELATIONSHIP = "server_stores"
 MRS_TABLE_STRUC = f'''CREATE TABLE  {MAIN_RELATIONSHIP}(
 file_filename TEXT,
@@ -41,7 +42,7 @@ class ResponseFile():
         self.body = body
         self.length = length
 
-# directory structure html
+# html template for showing our directory structure
 directory_structure = '''
 <!DOCTYPE html>
 <html>
@@ -54,19 +55,22 @@ directory_structure = '''
 </ui>
 </body>
 </html>'''
+
 def initServerInformation(hostname, root_path, cursor):
     cursor.execute("INSERT OR IGNORE INTO server VALUES(?,?)",
                    (hostname, root_path))
     
 def stablishConnection(database_name):
+    """Tries to connect to the database, any error will cause to break the current connection"""
+    
     try:
         return sqlite3.connect(database_name + ".db")
-    except Error:
-        print(Error)
+    except Error as err:
+        print(err.args, err.__class__)
         # maybe raise something here
         
 def initDatabase(database_name):
-    checkRoot(database_name)
+    checkRoot(database_name) 
     connection = stablishConnection(database_name)
     cursor = connection.cursor()
     initTables(cursor)
@@ -90,6 +94,8 @@ def initTables(maindb_cursor):
         exit()
         
 def openFile(request):
+    """Opens and calculates the current file's filesize so it can declare a Content-length"""
+    
     try:
         with open(request , "rb") as file_to_return:
             body =  file_to_return.read()
@@ -125,6 +131,7 @@ def searchFile(requested_path, hostname):
                                 "text/html ; charset=utf-8",
                                 directory_formatted_string_to_bytes,
                                 len(directory_formatted_string_to_bytes))
+    # in this case, we are checking if the file actually exists within the server
     else:
         connection = stablishConnection(hostname)
         cursor = connection.cursor()
@@ -132,13 +139,13 @@ def searchFile(requested_path, hostname):
         cursor.execute("SELECT * FROM file WHERE filename=?",
                        (requested_filename,))
         try:
-            name, file_path, was_moved, mimetype = cursor.fetchall()[0]
+            name, file_path, was_moved, mimetype = cursor.fetchall()[0] # fetchone is better
         except IndexError:
                raise NotFound
         finally:
             connection.close()
-        if was_moved == 1:
-            raise MovedPerm(file_path)
+        if was_moved == 1 and file_path != hostname + requested_path:
+            raise MovedPerm(file_path.replace(hostname, ""))
         
         data, data_length = openFile(file_path)
         return ResponseFile("200 OK",
@@ -157,11 +164,7 @@ def deleteFileFromDatabase(filename, cursor):
     succ = cursor.execute("DELETE FROM file WHERE filename=?", (filename,))
     if succ is None:
         raise ServerError
-    
-def moveFile(requested_moving):
-    pass
-def scanDirectory():
-    pass
+
 def insertIntoDatabase(filename, path, moved, mimetype, cursor):
     cursor.execute("INSERT OR IGNORE INTO file VALUES (?, ?, ?, ?)",
                    (filename, path, moved, mimetype))
@@ -187,7 +190,6 @@ def createFile(filename_and_path_to_create, file_to_create, hostname, cursor=Non
     cursor = connection.cursor()
     cursor.execute("SELECT path FROM file WHERE filename=?", (divided_path[-1], ))
     found_files = cursor.fetchone()
-    print(found_files)
     # already exists within our server and is in a different path
     if found_files is not None and found_files[0] != filename_and_path_to_create:
         deleteFile(found_files[0]) # see if this is right
