@@ -1,4 +1,5 @@
 class Message:
+    """Message parses the data received by socket."""
     def __init__(self, msg):
         self.method = ""
         self.request = ""
@@ -7,11 +8,12 @@ class Message:
         self.user_agent = ""
         self.accept = ""
         self.content_length = ""
+
         self.__parse__(msg)
 
     def __parse__(self, msg):
         # Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
-        parsedMsg      = msg.split("\n")
+        parsedMsg = msg.split("\n")
         for x in parsedMsg:
             y = x.split(" ")
             print (y)
