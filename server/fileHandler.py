@@ -2,30 +2,31 @@ import sqlite3
 import os
 from errorHandler import *
 from sqlite3 import Error
+from mimeTypes import mime_types 
 # constants that define all our tables
 # here we define the general structure for our table for file
 FILE_TABLE_NAME = "file"
-FILE_TABLE_STRUC = f'''{FILE_TABLE_NAME}(
+FILE_TABLE_STRUC = f'''CREATE TABLE {FILE_TABLE_NAME}(
 filename TEXT PRIMARY KEY, 
 path TEXT, 
 moved INTEGER, 
 mimetype TEXT
-)'''
+)\n'''
 
 # server's general structure
 SERVER_TABLE_NAME = "server"
-SERVER_TABLE_STRUC = f'''{SERVER_TABLE_NAME}(
+SERVER_TABLE_STRUC = f'''CREATE TABLE {SERVER_TABLE_NAME}(
 hostname TEXT PRIMARY KEY, 
 root_path TEXT
-)'''
+)\n'''
 
 # relationship between file and server
 MAIN_RELATIONSHIP = "server_stores"
-MRS_TABLE_STRUC = f'''{MAIN_RELATIONSHIP}(
+MRS_TABLE_STRUC = f'''CREATE TABLE  {MAIN_RELATIONSHIP}(
 file_filename TEXT,
 server_hostname TEXT,
 FOREIGN KEY(file_filename) REFERENCES file(filename),
-FOREIGN KEY(server_hostname) REFERENCES server(hostname))'''
+FOREIGN KEY(server_hostname) REFERENCES server(hostname))\n'''
 
 # index default filename
 INDEX_FILENAME = "index.html"
@@ -54,7 +55,8 @@ directory_structure = '''
 </body>
 </html>'''
 def initServerInformation(hostname, root_path, cursor):
-    cursor.execute(f'''INSERT OR IGNORE INTO server VALUES(\'{hostname}\', \'{root_path}\')''')
+    cursor.execute("INSERT OR IGNORE INTO server VALUES(?,?)",
+                   (hostname, root_path))
     
 def stablishConnection(database_name):
     try:
@@ -62,6 +64,7 @@ def stablishConnection(database_name):
     except Error:
         print(Error)
         # maybe raise something here
+        
 def initDatabase(database_name):
     checkRoot(database_name)
     connection = stablishConnection(database_name)
@@ -78,16 +81,14 @@ def manageDatabase(database_name):
 
 def initTables(maindb_cursor):
     try:
-        maindb_cursor.execute("CREATE TABLE IF NOT EXISTS {}".format(FILE_TABLE_STRUC))
-        maindb_cursor.execute("CREATE TABLE IF NOT EXISTS {}".format(SERVER_TABLE_STRUC))
-        maindb_cursor.execute("CREATE TABLE IF NOT EXISTS {}".format(MRS_TABLE_STRUC))
+        maindb_cursor.execute(FILE_TABLE_STRUC)
+        maindb_cursor.execute(SERVER_TABLE_STRUC)
+        maindb_cursor.execute(MRS_TABLE_STRUC)
     except Error as err:
         print(err.args)
         print(err.__class__)
+        exit()
         
-def createFile(file_to_create, file_data=None, cursor=None):
-    pass
-
 def openFile(request):
     try:
         with open(request , "rb") as file_to_return:
@@ -128,14 +129,15 @@ def searchFile(requested_path, hostname):
         connection = stablishConnection(hostname)
         cursor = connection.cursor()
         requested_filename = requested_path.split("/")[-1]
-        cursor.execute(f'''SELECT * FROM file WHERE filename = \'{requested_filename}\' ''')
+        cursor.execute("SELECT * FROM file WHERE filename=?",
+                       (requested_filename,))
         try:
             name, file_path, was_moved, mimetype = cursor.fetchall()[0]
         except IndexError:
                raise NotFound
         finally:
             connection.close()
-        if was_moved == "1":
+        if was_moved == 1:
             raise MovedPerm(file_path)
         
         data, data_length = openFile(file_path)
@@ -146,11 +148,74 @@ def searchFile(requested_path, hostname):
                 
         
 def deleteFile(requested_deletion):
-    pass
+    try:
+        os.remove(requested_deletion)
+    except IOError:
+        raise ServerError
+
+def deleteFileFromDatabase(filename, cursor):
+    succ = cursor.execute("DELETE FROM file WHERE filename=?", (filename,))
+    if succ is None:
+        raise ServerError
+    
 def moveFile(requested_moving):
     pass
 def scanDirectory():
     pass
+def insertIntoDatabase(filename, path, moved, mimetype, cursor):
+    cursor.execute("INSERT OR IGNORE INTO file VALUES (?, ?, ?, ?)",
+                   (filename, path, moved, mimetype))
+
+    
+def createFolders(passed_folders):
+    path_string = ""
+    for path in passed_folders:
+        path_string += f"{path}/"
+        if os.path.isfile(path_string):
+            raise ServerError
+        elif not os.path.isdir(path_string):
+            os.mkdir(path_string)
+        else:
+            continue
+        
+def createFile(filename_and_path_to_create, file_to_create, hostname, cursor=None):
+    filename_plus_root = hostname + filename_and_path_to_create
+    divided_path = filename_plus_root.split("/")
+    moved = 0
+    # first, check if the requested filename already exists within the server
+    connection = stablishConnection(hostname)
+    cursor = connection.cursor()
+    cursor.execute("SELECT path FROM file WHERE filename=?", (divided_path[-1], ))
+    found_files = cursor.fetchone()
+    print(found_files)
+    # already exists within our server and is in a different path
+    if found_files is not None and found_files[0] != filename_and_path_to_create:
+        deleteFile(found_files[0]) # see if this is right
+        deleteFileFromDatabase(divided_path[-1], cursor)
+        moved = 1
+        
+    # have to make sure, though, that at least the requested folders exist
+    if not len(divided_path) == 0:
+        folders_to_create = divided_path[:-1]
+        createFolders(folders_to_create)
+    try:
+    # if we choose to create/update a file, wb could work well here
+        with open(filename_plus_root, "wb") as new_file:
+            new_file.write(file_to_create)
+    except IOError:
+        raise ServerError
+
+    
+    # now that our file is created, update the database
+    insertIntoDatabase(divided_path[-1],
+                       filename_plus_root,
+                       moved,
+                       mime_types.get(divided_path[-1].split(".")[-1], "text/html ; charset=utf-8"),
+                       cursor)
+    
+    connection.commit()
+    connection.close()
+    return moved
 
 # if there isn`t a root directory, create one
 # raise an exception if that's impossible to do
