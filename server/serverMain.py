@@ -25,7 +25,7 @@ def conEstablished(soos):
     # here we accept the file that our client is sending IF content-length
     # was declared within their request
     if message_object.content_length is not None:
-        conSocket.sendall(bytes("HTTP/1.1 200 Continue\r\nServer: {}\r\n\r\n".format(server_def[1]).encode("UTF-8")))
+        conSocket.sendall(bytes("HTTP/1.1 100 Continue\r\nServer: {}\r\n\r\n".format(server_def[1]).encode("UTF-8")))
         control = int(message_object.content_length)
         while control > 0:
             object_received += conSocket.recv(2048)
