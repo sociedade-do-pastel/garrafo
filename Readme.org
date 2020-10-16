@@ -5,18 +5,18 @@
 #+OPTIONS: toc:nil author:nil date:nil
 * Introdução
   O projeto teve como objetivo programar um servidor HTTP o qual possa suportar
-  métodos para acesso e criação de arquivos neste servidor. No caso, o grupo
+  métodos para acesso e criação de arquivos neste programa. No caso, o grupo
   optou por implementar os métodos *GET* e *PUT* por motivos os quais já serão
   esclarecidos. Além disso, também foi requisitados avisos se o arquivo
   pedido fora movido ou se este não existe.
 
 ** As capacidades do *Garrafo*
    Até o momento, o *Garrafo* é capaz de:
-   - [X] Responder corretamente a /requests/ GET, respondendo com os
+   - [X] Responder corretamente a /requests/ GET, retornando os
      campos específicos para conteúdo, *Content-Length* e *Content-Type*
    - [X] Responder corretamente a /requests/ PUT para a criação de arquivos
      localmente no servidor, enviando antes de aceitar o arquivo, a mensagem de
-     estado *200 Continue*.
+     estado *100 Continue*.
    - [X] Por padrão recebe /requests/ para a página inicial *index*, respondendo
      com esta para os pedidos *index.html*, *index.htm*, *index*, */* e string
      vazia. Esta página já está presente no pacote e pode ser modificada
@@ -32,6 +32,7 @@
     Devida à dificuldade de trabalhar com múltiplos arquivos de mesmo nome,
     o servidor trabalha com arquivos cujos *filenames* são diferentes.
     Caso seja realizado um *PUT* request para que seja criado um novo arquivo
+    cujo filename já exista
     no servidor, este novo arquivo enviado pelo *PUT* e o
     antigo será *apagado*. Qualquer novo arquivo com nome igual a de um já presente
     será considerado *movido* e sua antiga *URI* fará referência ao novo local.
