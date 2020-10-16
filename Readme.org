@@ -1,9 +1,144 @@
-#+TITLE: Garrafo: O servidor *minimalista* de /HTTP/
+#+TITLE: Garrafo: O servidor *minimalista* de /HTTP1.1/
+#+LATEX_HEADER: \author{Leon F. Bellini\\\textbf{22218002-8}\and Guilherme O. Sampaio\\\textbf{22218007-7}\and Felipe M. Sousa\\\textbf{22218042-4}}
+#+LATEX_HEADER: \usepackage[margin=2cm]{geometry}
+#+LATEX_HEADER: \usepackage{csquotes}
+#+OPTIONS: toc:nil author:nil date:nil
+* Introdução
+  O projeto teve como objetivo programar um servidor HTTP o qual possa suportar
+  métodos para acesso e criação de arquivos neste programa. No caso, o grupo
+  optou por implementar os métodos *GET* e *PUT* por motivos os quais já serão
+  esclarecidos. Além disso, também foi requisitados avisos se o arquivo
+  pedido fora movido ou se este não existe.
 
-* O que é?
-Como projeto para a disciplina de redes será criado um servidor utilizando a 
-biblioteca /berkeley sockets/ da linguagem ainda a ser definida.
+** As capacidades do *Garrafo*
+   Até o momento, o *Garrafo* é capaz de:
+   - [X] Responder corretamente a /requests/ GET, retornando os
+     campos específicos para conteúdo, *Content-Length* e *Content-Type*
+   - [X] Responder corretamente a /requests/ PUT para a criação de arquivos
+     localmente no servidor, enviando antes de aceitar o arquivo, a mensagem de
+     estado *100 Continue*.
+   - [X] Por padrão recebe /requests/ para a página inicial *index*, respondendo
+     com esta para os pedidos *index.html*, *index.htm*, *index*, */* e string
+     vazia. Esta página já está presente no pacote e pode ser modificada
+     como o usuário desejar. 
+   - [X] Listar o diretório caso um diretório local seja requisitado
+     (Mais informações no tutorial).
+   - [X] Mover arquivos utilizando-se das propriedades do /request/ *PUT*
+   - [X] Indexar todos seus arquivos num banco de dados criado através da ferramenta
+     *sqlite3*.
+   - [X] Informar se um arquivo fora movido e seu novo caminho.
+  
+*** Os problemas do *Garrafo*
+    Devida à dificuldade de trabalhar com múltiplos arquivos de mesmo nome,
+    o servidor trabalha com arquivos cujos *filenames* são diferentes.
+    Caso seja realizado um *PUT* request para que seja criado um novo arquivo
+    cujo filename já exista
+    no servidor, este novo arquivo enviado pelo *PUT* e o
+    antigo será *apagado*. Qualquer novo arquivo com nome igual a de um já presente
+    será considerado *movido* e sua antiga *URI* fará referência ao novo local.
 
+    A RFC2616 apresenta um trecho conveniente para a justificação de tal
+    tomada de decisão. \\
 
+#+BEGIN_QUOTE
+   A single resource MAY be identified by many different URIs. For
+   example, an article might have a URI for identifying "the current
+   version" which is separate from the URI identifying each particular
+   version. In this case, a PUT request on a general URI might result in
+   several other URIs being defined by the origin server.
+#+END_QUOTE
+    
+* Tutorial
+** Executando o servidor
+   O arquivo principal do
+   servidor (serverMain.py) deve ser executado com o interpretador *Python* de versão *3*.
+   Algumas distribuições requerem a especificação desta versão na execução do comando,
+   como *python3 <alvo>*
+*** Demonstração                                                   :noexport:
+    [[./img/running.gif]]
+*** Trocando a porta padrão
+    Por padrão, o servidor opera na porta *8080*. Caso seja necessária a mudança
+    desta, basta escrever a porta desejada após a digitação do comando para
+    invocar o servidor:
+*** Demonstração, porta diferente
+    #+begin_src bash
+      python serverMain.py 8081
+    #+end_src
+**** Demonstração                                                  :noexport:
+     [[./img/running_different_port.gif]]
+    
+** Utilizando-se da linha de comando
+   É recomendado a utilização do programa [[https://curl.haxx.se/][cURL]] para o trabalho com transferência
+   de arquivos pela rede. Sua rapidez, disponibilidade nos repositórios de muitas
+   das distribuições GNU/Linux e fácil utilização nos permitiu testar o servidor
+   com agilidade.
+*** Instalando o cURL
+    Para mais informações, visite [[https://curl.haxx.se/download.html]]
+**** Debian e derivados como Ubuntu
+     #+begin_src bash
+       sudo apt-get update && sudo-apt-get install curl
+     #+end_src
+**** Arch linux
+     Presente nos repositórios *core*. 
+     #+begin_src bash
+       sudo pacman -S curl 
+     #+end_src
+*** "Pegando" um arquivo do servidor
+    Por padrão, cURL trabalha com métodos GET sem outros parâmetros. Caso seja
+    desejado um /output/ melhor do que está acontecendo, utilize o parâmetro
+    *--verbose*. É necessário, também, especificar a versão do HTTP a ser utilizada
+    na requisição. É possível fazer isso com o parâmetro *--http1.1*. Por fim, caso
+    seja desejado o salvamento do arquivo localmente, basta utilizar o parâmetro *-o*
+    seguido do nome do arquivo.
+**** cURL para GET
+     Obtendo-se a página *index.html*:
+     #+begin_src bash
+       curl --http1.1 --verbose 127.0.0.1:8080
+     #+end_src
+**** Demonstração                                                  :noexport:
+     [[./img/getting_command_line.gif]]
+*** "Colocando" um arquivo no servidor
+    O comando *PUT* é designado como o comando para se enviar e repor arquivos
+    em um servidor. Como diz a *RFC 2616*, *PUT* é utilizado para a criação do
+    arquivo enviado. Como (tecnicamente, apesar de não ser seguido)
+    o *POST* apenas modifica o arquivo requisitado, foi escolhido o *PUT*
+    para tal operação.
+**** O parâmetro "-T"
+     Significando "upload-file", o cURL por padrão vai-se utilizar do método *PUT*
+     quando tratando o protocolo HTTP.
 
+     #+begin_src bash
+       curl --http1.1 --verbose -T arquivo_para_enviar 127.0.0.1:8080/arquivo_para_enviar 
+     #+end_src
+   É recomendado que o nome do arquivo enviado contenha sua extensão, uma vez que os
+   tipos de *MIME* são definidos à partir disso.
+*** Demonstração                                                   :noexport:
+    [[./img/putting.gif]]
+*** "Movendo" um arquivo do servidor
+    Como dito anteriormente, um arquivo enviado com o mesmo *filename* e diferente
+    URI será considerado "movido" e sua antiga URI ativará um aviso de *arquivo movido*.
+**** Demonstração                                                  :noexport:
+     [[./img/curl_moving.gif]]
+*** Os arquivos suportados
+    O dicionário [[file:server/mimeTypes.py][mime-types]] inclui todos os formatos suportados pelo servidor.
+    Caso o *dev* desejar inserir um novo formato, basta adicionar o tipo de
+    conteúdo (desde que seja suportado) no dicionário. Por padrão todo arquivo
+    sem extensão é tratado como *text/html*. Esta lista foi inspirada na mesma
+    utilizada pelo pacote do editor de texto GNU/Emacs, [[https://github.com/skeeto/emacs-web-server/blob/master/simple-httpd.el][simple-httpd]].
+    
+** No navegador   
+   O processo de teste se torna mais fácil no navegador, uma vez que apenas
+   o comando *GET* está disponível para o acesso ao servidor.
+*** Obtendo-se a página inicial                                    :noexport:
+    [[./img/connecting_browser.gif]]
+*** Obtendo-se a lista de arquivos                                 :noexport:
+    [[./img/gettting_directory_listing.gif]]
+*** Pesquisando por um arquivo inválido                            :noexport:
+    [[./img/404_demonstration.gif]]
+*** Acessando um arquivo movido                                    :noexport:
+    [[./img/getting_moved_files.gif]]
+*** Acessando um arquivo movido pelo usuário                       :noexport:
+    [[./img/getting_saving_file.gif]]
 
+* Página do projeto no GitHub
+  - [[https://github.com/sociedade-do-pastel/garrafo]]
