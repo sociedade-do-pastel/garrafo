@@ -110,8 +110,17 @@
      #+begin_src bash
        curl --http1.1 --verbose -T arquivo_para_enviar 127.0.0.1:8080/arquivo_para_enviar 
      #+end_src
-   É recomendado que o nome do arquivo enviado contenha sua extensão, uma vez que os
-   tipos de *MIME* são definidos à partir disso.
+     É recomendado que o nome do arquivo enviado contenha sua extensão, uma vez que os
+     tipos de *MIME* são definidos à partir disso.
+**** Telnet
+     Para a utilização do método PUT utilizando o Telnet é necessária a utilização dos
+     parâmetros:
+   
+     #+begin_src text
+       Content-Length: n
+       Expect: 100-continue
+     #+end_src
+     Sendo n o tamanho do arquivo a ser enviado.
 *** Demonstração                                                   :noexport:
     [[./img/putting.gif]]
 *** "Movendo" um arquivo do servidor
