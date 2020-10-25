@@ -18,7 +18,13 @@ def conEstablished(soos):
     "Generate a correct string of messages after the connection has been established."
     conSocket, addr = soos.accept()
     print(f"Connected with address: {addr}")
-    mensagem = conSocket.recv(2048).decode("UTF-8", "ignore")
+
+    mensagem = ""
+    while True:
+        mensagem += conSocket.recv(2048).decode("UTF-8", "ignore")
+        if mensagem[-3:] == "\n\r\n":
+            break
+
     message_object = msg.Message(mensagem)
     object_received = bytearray()
     # let's go with a bit of a verbose approach
